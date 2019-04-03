@@ -54,8 +54,179 @@ void SimpleHandler::OnTitleChange(CefRefPtr<CefBrowser> browser,
   }
 }
 
+
+WNDPROC m_windowProcPrev;
+static int     cxClient, cyClient;
+#define DIVISIONS 5
+static BOOL state[DIVISIONS][DIVISIONS];
+std::map< HWND, WNDPROC> wndProcmap;
+
+static HWND g_browserHwnd;
+
+static const UINT_PTR IDT_TIMER1 = 1;
+
+#define CAPTION_X 500
+#define CAPTION_Y 200
+
+LRESULT CALLBACK MyWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK MyWndProcChild(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK hookChild(HWND hWnd, LPARAM lParam) {
+	if (wndProcmap.find(hWnd) == wndProcmap.end()) {
+
+		LONG_PTR Style = ::GetWindowLongPtr(hWnd, GWL_STYLE);
+		Style = Style &~WS_CAPTION  &~WS_SYSMENU &~WS_SIZEBOX & ~WS_VSCROLL & ~WS_HSCROLL;
+		::SetWindowLongPtr(hWnd, GWL_STYLE, Style);
+
+		m_windowProcPrev = (WNDPROC)::SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG)MyWndProcChild);
+		wndProcmap[hWnd] = m_windowProcPrev;
+		EnumChildWindows(hWnd, hookChild, lParam);
+	}
+	return TRUE;
+}
+
+
+LRESULT CALLBACK MyWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_TIMER:
+		if (wParam == IDT_TIMER1) {
+			EnumChildWindows(hWnd, hookChild, 0);
+			KillTimer(hWnd, IDT_TIMER1);
+			return 0;
+		}
+		break;
+	case WM_NCLBUTTONDBLCLK:
+		return 0;
+	case WM_NCHITTEST:
+		POINT p{ (SHORT)LOWORD(lParam), (SHORT)HIWORD(lParam) };
+		MapWindowPoints(HWND_DESKTOP, hWnd, &p, 1);
+		if (p.x < CAPTION_X && p.y < CAPTION_Y) {
+			return HTCAPTION;
+		}
+		POINT pt;
+		pt.x = (int)(short)LOWORD(lParam);
+		pt.y = (int)(short)HIWORD(lParam);
+		::ScreenToClient(hWnd, &pt);
+		RECT rcClient = { 0 };
+		::GetClientRect(hWnd, &rcClient);
+		if (pt.x<rcClient.left + 2 && pt.y<rcClient.top + 2)//左上角,判断是不是在左上角，就是看当前坐标是不是即在左边拖动的范围内，又在上边拖动的范围内，其它角判断方法类似
+		{
+			return HTTOPLEFT;
+		}
+		else if (pt.x>rcClient.right - 2 && pt.y<rcClient.top + 2)//右上角
+		{
+			return HTTOPRIGHT;
+		}
+		else if (pt.x<rcClient.left + 2 && pt.y>rcClient.bottom - 2)//左下角
+		{
+			return HTBOTTOMLEFT;
+		}
+		else if (pt.x>rcClient.right - 2 && pt.y>rcClient.bottom - 2)//右下角
+		{
+			return HTBOTTOMRIGHT;
+		}
+		else if (pt.x<rcClient.left + 2)
+		{
+			return HTLEFT;
+		}
+		else if (pt.x>rcClient.right - 2)
+		{
+			return HTRIGHT;
+		}
+		else if (pt.y<rcClient.top + 2)
+		{
+			return HTTOP;
+		}if (pt.y>rcClient.bottom - 2)
+		{
+			return HTBOTTOM;          //以上这四个是上、下、左、右四个边
+		}
+		break;
+	}
+	m_windowProcPrev = wndProcmap[hWnd];
+	return CallWindowProc(m_windowProcPrev, hWnd, message, wParam, lParam);
+}
+LRESULT CALLBACK MyWndProcChild(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_NCLBUTTONDBLCLK:
+		return 0;
+	case WM_NCHITTEST:
+
+		POINT p{ (SHORT)LOWORD(lParam), (SHORT)HIWORD(lParam) };
+		MapWindowPoints(HWND_DESKTOP, hWnd, &p, 1);
+		if (p.x < CAPTION_X && p.y < CAPTION_Y) {
+			return HTTRANSPARENT;
+		}
+		POINT pt;
+		pt.x = (int)(short)LOWORD(lParam);
+		pt.y = (int)(short)HIWORD(lParam);
+		::ScreenToClient(hWnd, &pt);
+		RECT rcClient = { 0 };
+		::GetClientRect(hWnd, &rcClient);
+		if (pt.x<rcClient.left + 2 && pt.y<rcClient.top + 2)//左上角,判断是不是在左上角，就是看当前坐标是不是即在左边拖动的范围内，又在上边拖动的范围内，其它角判断方法类似
+		{
+			return HTTRANSPARENT;
+		}
+		else if (pt.x>rcClient.right - 2 && pt.y<rcClient.top + 2)//右上角
+		{
+			return HTTRANSPARENT;
+		}
+		else if (pt.x<rcClient.left + 2 && pt.y>rcClient.bottom - 2)//左下角
+		{
+			return HTTRANSPARENT;
+		}
+		else if (pt.x>rcClient.right - 2 && pt.y>rcClient.bottom - 2)//右下角
+		{
+			return HTTRANSPARENT;
+		}
+		else if (pt.x<rcClient.left + 2)
+		{
+			return HTTRANSPARENT;
+		}
+		else if (pt.x>rcClient.right - 2)
+		{
+			return HTTRANSPARENT;
+		}
+		else if (pt.y<rcClient.top + 2)
+		{
+			return HTTRANSPARENT;
+		}if (pt.y>rcClient.bottom - 2)
+		{
+			return HTTRANSPARENT;          //以上这四个是上、下、左、右四个边
+		}
+		break;
+	}
+	m_windowProcPrev = wndProcmap[hWnd];
+	return CallWindowProc(m_windowProcPrev, hWnd, message, wParam, lParam);
+}
+// Define a function.
+void MyFunc(HWND hwnd, HANDLE waitEvent) {
+	//CEF_REQUIRE_UI_THREAD();
+	m_windowProcPrev = (WNDPROC)::SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG)MyWndProc);
+	wndProcmap[hwnd] = m_windowProcPrev;
+	EnumChildWindows(hwnd, hookChild, (LONG_PTR)NULL);
+}
+
 void SimpleHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
+
+  HWND hwnd = browser->GetHost()->GetWindowHandle();
+  g_browserHwnd = hwnd;
+  m_windowProcPrev = (WNDPROC)::SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG)MyWndProc);
+  wndProcmap[hwnd] = m_windowProcPrev;
+  //EnumChildWindows(hwnd, hookChild, (LONG_PTR)this);
+  SetTimer(hwnd,             // handle to main window 
+	  IDT_TIMER1,            // timer identifier 
+	  50,                 // 10-second interval 
+	  (TIMERPROC)NULL);     // no timer callback 
+
+  LONG_PTR Style = ::GetWindowLongPtr(hwnd, GWL_STYLE);
+  //Style = Style &~WS_CAPTION &~WS_SYSMENU &~WS_SIZEBOX;
+  Style = Style &~WS_CAPTION  &~WS_SYSMENU &~WS_SIZEBOX & ~WS_VSCROLL;
+  Style = Style &~WS_SYSMENU &~WS_SIZEBOX & ~WS_VSCROLL;
+  ::SetWindowLongPtr(hwnd, GWL_STYLE, Style);
 
   // Add to the list of existing browsers.
   browser_list_.push_back(browser);
