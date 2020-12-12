@@ -82,7 +82,8 @@ void SimpleApp::OnContextInitialized() {
   // that instead of the default URL.
   url = command_line->GetSwitchValue("url");
   if (url.empty())
-    url = "http://www.google.com";
+   url = "http://www.google.com";
+	//url = "http://localhost:8080";
 
   if (use_views) {
     // Create the BrowserView.
@@ -105,4 +106,23 @@ void SimpleApp::OnContextInitialized() {
     CefBrowserHost::CreateBrowser(window_info, handler, url, browser_settings,
                                   NULL);
   }
+}
+
+
+void SimpleRenderApp::OnContextCreated(CefRefPtr<CefBrowser> browser,
+	CefRefPtr<CefFrame> frame,
+	CefRefPtr<CefV8Context> context) {
+
+	// Retrieve the context&amp;apos;s window object.
+	CefRefPtr<CefV8Value> window = context->GetGlobal(); 
+
+	//给window象添加一个myvalue的的String对你
+	CefRefPtr<CefV8Value> str = CefV8Value::CreateString("My String Value");
+	window->SetValue("myvalue", str, V8_PROPERTY_ATTRIBUTE_NONE);
+
+	// Create the "myfunc" function.
+	CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction(CefString("myfunc"), m_cefV8handler); 
+	// Add the "myfunc" function to the "window" object.&#13;
+	window->SetValue("myfunc", func, V8_PROPERTY_ATTRIBUTE_NONE);
+
 }
