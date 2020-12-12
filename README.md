@@ -1,4 +1,4 @@
-# cefsimple
+# cefsimpledrag
 本项目缺少
 [cef_binary_3.3626.1895.g7001d56_windows32.tar.bz2](http://opensource.spotify.com/cefbuilds/cef_binary_3.3626.1895.g7001d56_windows32.tar.bz2)的部分二进制文件,以便减少项目大小，更快捷地提交。clone下来后，需将以下几个文件夹复制根目录。
 
@@ -36,3 +36,7 @@ Resources
    - [libcef二进制版本下载地址http://opensource.spotify.com/cefbuilds/index.html](http://opensource.spotify.com/cefbuilds/index.html)
    - 本文下载的是cef_binary_3.3626.1895.g7001d56_windows32.tar.bz2, 与chrome72版本对应。
    - [libcef版本与chrome版本的对应关系，请查看https://bitbucket.org/chromiumembedded/cef/wiki/BranchesAndBuilding](https://bitbucket.org/chromiumembedded/cef/wiki/BranchesAndBuilding)
+   
+## 本项目主要功能
+### 通过修改窗口样式去掉打开的网页窗口的标题栏
+### 通过过滤WM_NCHITTEST消息实现无标题栏窗口的拖动
